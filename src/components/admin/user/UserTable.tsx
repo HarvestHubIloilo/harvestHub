@@ -58,6 +58,9 @@ const UserTable: React.FC<UserTableProps> = ({
                 <TableCell>
                   <div className="h-8 bg-gray-300 rounded w-24 animate-pulse"></div>
                 </TableCell>
+                <TableCell>
+                  <div className="h-8 bg-gray-300 rounded w-24 animate-pulse"></div>
+                </TableCell>
               </TableRow>
             ))
           : users
@@ -69,7 +72,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     {toSentenceCase(
                       `${user.name?.first || "N/A"} ${
                         user.name?.middle || ""
-                      } ${user.name?.last || ""}`.trim()
+                      } ${user.name?.last || ""}`.trim(),
                     )}
                   </TableCell>
                   <TableCell>{user.username}</TableCell>
@@ -79,8 +82,8 @@ const UserTable: React.FC<UserTableProps> = ({
                     {typeof user.address === "string"
                       ? user.address
                       : user.address
-                      ? JSON.stringify(user.address)
-                      : "N/A"}
+                        ? JSON.stringify(user.address)
+                        : "N/A"}
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

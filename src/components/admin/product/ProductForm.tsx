@@ -64,7 +64,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="scrollbar-hide max-h-[90vh] w-full max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {formData.product_id ? "Edit Product" : "Add Product"}

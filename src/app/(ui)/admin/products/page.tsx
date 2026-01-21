@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import ProductTable from "@/components/admin/product/ProductTable";
 import ProductForm from "@/components/admin/product/ProductForm";
 import { validateProduct } from "@/utils/admin/product/formValidation";
 import { Product } from "@/lib/definitions";
 import { categories } from "@/lib/productsConfig";
-import Swal from "sweetalert2";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/Pagination";
@@ -30,6 +30,8 @@ export default function ProductManagement() {
     sku: "",
     status: "coming_soon",
     status_message: "",
+    is_featured: false,
+    is_recommended: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -43,7 +45,7 @@ export default function ProductManagement() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/products?page=${page}&limit=10&product_type=${selectedCategory}&search_term=${searchTerm}`
+        `/api/products?page=${page}&limit=10&product_type=${selectedCategory}&search_term=${searchTerm}`,
       );
       const data = await response.json();
 
@@ -52,7 +54,7 @@ export default function ProductManagement() {
           (product: { name: string | null | undefined }) =>
             product.name !== null &&
             product.name !== undefined &&
-            product.name.trim() !== ""
+            product.name.trim() !== "",
         );
 
         setProducts(validProducts);
@@ -67,7 +69,7 @@ export default function ProductManagement() {
       Swal.fire(
         "Error",
         `An unexpected error occurred: ${errorMessage}`,
-        "error"
+        "error",
       );
     } finally {
       setLoading(false);
@@ -94,7 +96,7 @@ export default function ProductManagement() {
     // Optionally, generate a preview URL for the frontend
     const previewUrl = URL.createObjectURL(file);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setFormData((prev) => ({ ...prev, imagePreview: previewUrl } as any));
+    setFormData((prev) => ({ ...prev, imagePreview: previewUrl }) as any);
   };
 
   const handleAddProduct = () => {
@@ -148,7 +150,7 @@ export default function ProductManagement() {
             `/api/admin/products?product_id=${productId}`,
             {
               method: "DELETE",
-            }
+            },
           );
 
           const data = await response.json();
@@ -160,7 +162,7 @@ export default function ProductManagement() {
             Swal.fire(
               "Error",
               data.error || "Failed to delete product.",
-              "error"
+              "error",
             );
           }
         } catch {
@@ -174,7 +176,7 @@ export default function ProductManagement() {
     const validationErrors = validateProduct(
       formData,
       products,
-      editingProduct
+      editingProduct,
     );
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -185,7 +187,7 @@ export default function ProductManagement() {
       const formDataToSend = new FormData();
       formDataToSend.append(
         "product_id",
-        (formData.product_id ?? 0).toString()
+        (formData.product_id ?? 0).toString(),
       );
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description);
@@ -210,7 +212,7 @@ export default function ProductManagement() {
         // allow empty string
         formDataToSend.append(
           "status_message",
-          String(formData.status_message ?? "")
+          String(formData.status_message ?? ""),
         );
       }
 
@@ -225,7 +227,7 @@ export default function ProductManagement() {
           editingProduct
             ? "Product updated successfully."
             : "Product added successfully.",
-          "success"
+          "success",
         );
         setIsDialogOpen(false);
         fetchProducts(); // Refresh the product list
@@ -250,6 +252,70 @@ export default function ProductManagement() {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
+  };
+
+  const handleToggleFeatured = async (productId: string, value: boolean) => {
+    // Optimistic update to local state
+    const updatedProducts = products.map((product) =>
+      product.product_id === Number(productId)
+        ? { ...product, is_featured: value }
+        : product,
+    );
+    setProducts(updatedProducts);
+    setFilteredProducts(
+      filteredProducts.map((product) =>
+        product.product_id === Number(productId)
+          ? { ...product, is_featured: value }
+          : product,
+      ),
+    );
+
+    // Background API call (no await, no modal)
+    const formDataToSend = new FormData();
+    formDataToSend.append("product_id", productId);
+    formDataToSend.append("is_featured", String(value));
+
+    fetch(`/api/admin/products`, {
+      method: "PUT",
+      body: formDataToSend,
+    }).catch((error) => {
+      console.error("Failed to update product:", error);
+      // Revert optimistic update on error
+      setProducts(products);
+      setFilteredProducts(filteredProducts);
+    });
+  };
+
+  const handleToggleRecommended = async (productId: string, value: boolean) => {
+    // Optimistic update to local state
+    const updatedProducts = products.map((product) =>
+      product.product_id === Number(productId)
+        ? { ...product, is_recommended: value }
+        : product,
+    );
+    setProducts(updatedProducts);
+    setFilteredProducts(
+      filteredProducts.map((product) =>
+        product.product_id === Number(productId)
+          ? { ...product, is_recommended: value }
+          : product,
+      ),
+    );
+
+    // Background API call (no await, no modal)
+    const formDataToSend = new FormData();
+    formDataToSend.append("product_id", productId);
+    formDataToSend.append("is_recommended", String(value));
+
+    fetch(`/api/admin/products`, {
+      method: "PUT",
+      body: formDataToSend,
+    }).catch((error) => {
+      console.error("Failed to update product:", error);
+      // Revert optimistic update on error
+      setProducts(products);
+      setFilteredProducts(filteredProducts);
+    });
   };
 
   // Check if the user is authenticated
@@ -288,6 +354,8 @@ export default function ProductManagement() {
             products={filteredProducts}
             onEdit={handleEditProduct}
             onDelete={handleDeleteProduct}
+            onToggleFeatured={handleToggleFeatured}
+            onToggleRecommended={handleToggleRecommended}
             loading={loading}
           />
         </div>
