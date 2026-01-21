@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
-    // Extract fields from the form data
+    // Extract fields
     const name = (formData.get("name") as string | null) ?? "";
     const description = (formData.get("description") as string | null) ?? "";
     const priceRaw = formData.get("price") as string | null;
@@ -23,6 +23,10 @@ export async function POST(req: NextRequest) {
     const imageBlob = formData.get("image_url") as Blob | null;
     const status = (formData.get("status") as string | null) ?? undefined;
     const status_message = (formData.get("status_message") as string | null) ?? null;
+
+    // New boolean switches (default false)
+    const is_featured = formData.get("is_featured") === "true";
+    const is_recommended = formData.get("is_recommended") === "true";
 
     const price = priceRaw ? parseFloat(priceRaw) : NaN;
 
@@ -34,12 +38,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate status if provided
+    // Validate status
     if (status && !STATUS_VALUES.has(status)) {
       return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
     }
 
-    // Upload the image to Supabase Storage if provided
+    // Upload image if provided
     let image_url: string | null = null;
     if (imageBlob) {
       const fileName = `products/${Date.now()}_${sku}.jpg`;
@@ -47,24 +51,27 @@ export async function POST(req: NextRequest) {
       image_url = await uploadImageToStorage(imageBlob, fileName, bucketName);
     }
 
-    // Insert the new product into the database
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const insertPayload: any = {
+    // Build insert payload
+    const insertPayload = {
       name,
       description,
       price,
       image_url,
       product_type,
       sku,
+      is_featured,
+      is_recommended,
       stocks: 0,
+      status,
+      status_message,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    if (status) insertPayload.status = status;
-    if (status_message !== null) insertPayload.status_message = status_message;
-
-    const { data, error } = await supabaseServer.from("products").insert([insertPayload]);
+    const { data, error } = await supabaseServer
+      .from("products")
+      .insert([insertPayload])
+      .select();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -74,14 +81,15 @@ export async function POST(req: NextRequest) {
       { message: "Product added successfully.", product: data },
       { status: 201 }
     );
-     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
     return NextResponse.json(
-      { error: error?.message || "An unexpected error occurred." },
+      { error: err.message ?? "Unexpected error" },
       { status: 500 }
     );
   }
 }
+
 
 export async function PUT(req: NextRequest) {
   try {
@@ -109,10 +117,20 @@ export async function PUT(req: NextRequest) {
     const statusMessageValue = formData.get("status_message");
     const status_message = statusMessageValue === null ? null : String(statusMessageValue);
 
+    // Handle is_featured and is_recommended boolean fields
+    const isFeaturedValue = formData.get("is_featured");
+    const isRecommendedValue = formData.get("is_recommended");
+
     const price = priceRaw ? parseFloat(priceRaw) : NaN;
 
-    // Validate required fields (still required)
-    if (!name || !description || Number.isNaN(price) || !product_type || !sku) {
+    // If only updating toggles (no name/description/etc), skip validation
+    const isToggleOnlyUpdate = 
+      !formData.has("name") && 
+      !formData.has("description") && 
+      !formData.has("price");
+
+    // Validate required fields only if not a toggle-only update
+    if (!isToggleOnlyUpdate && (!name || !description || Number.isNaN(price) || !product_type || !sku)) {
       return NextResponse.json(
         { error: "Required fields: name, description, price, product_type, sku." },
         { status: 400 }
@@ -134,16 +152,17 @@ export async function PUT(req: NextRequest) {
     }
 
     // Build update payload. Only include fields that should change.
-    // This ensures status/status_message are set when the client included them.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatePayload: any = {
-      name,
-      description,
-      price,
-      product_type,
-      sku,
       updated_at: new Date().toISOString(),
     };
+
+    // Only add these fields if they were provided in the request
+    if (formData.has("name")) updatePayload.name = name;
+    if (formData.has("description")) updatePayload.description = description;
+    if (formData.has("price")) updatePayload.price = price;
+    if (formData.has("product_type")) updatePayload.product_type = product_type;
+    if (formData.has("sku")) updatePayload.sku = sku;
 
     if (image_url) updatePayload.image_url = image_url;
 
@@ -157,6 +176,14 @@ export async function PUT(req: NextRequest) {
     // Accept empty string (will store empty string) or null explicitly.
     if (formData.has("status_message")) {
       updatePayload.status_message = status_message; // null or string
+    }
+
+    // Handle boolean toggle fields
+    if (isFeaturedValue !== null) {
+      updatePayload.is_featured = isFeaturedValue === "true";
+    }
+    if (isRecommendedValue !== null) {
+      updatePayload.is_recommended = isRecommendedValue === "true";
     }
 
     const { data, error } = await supabaseServer
