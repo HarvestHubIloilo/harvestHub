@@ -27,7 +27,7 @@ const FeaturedProductCarousel: FC = () => {
     const fetchFeaturedProducts = async () => {
       try {
         const response = await fetch(
-          `/api/products?is_featured=true&limit=${is_featuredCount}`
+          `/api/products?is_featured=true&limit=${is_featuredCount}`,
         );
         const data = await response.json();
         setFeaturedProducts(data.products || []);
@@ -46,7 +46,7 @@ const FeaturedProductCarousel: FC = () => {
     return (
       <Carousel>
         <CarouselContent>
-          {[...Array(3)].map((_, index) => (
+          {[...Array(10)].map((_, index) => (
             <CarouselItem key={index} className="md:basis-1/4 lg:basis-1/5">
               <div className="relative w-full h-55 rounded-sm overflow-hidden">
                 <Skeleton className="w-full h-full" />
