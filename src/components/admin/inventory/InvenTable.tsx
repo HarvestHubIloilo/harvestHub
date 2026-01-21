@@ -64,6 +64,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 <TableCell>
                   <div className="h-8 bg-gray-300 rounded w-24 animate-pulse"></div>
                 </TableCell>
+                <TableCell>
+                  <div className="h-8 bg-gray-300 rounded w-24 animate-pulse"></div>
+                </TableCell>
               </TableRow>
             ))
           : inventory.map((item, index) => (
