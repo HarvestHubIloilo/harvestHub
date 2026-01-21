@@ -16,6 +16,14 @@ export default function useAuth() {
     setLoading(true);
     setError(null);
     try {
+      // Check if user is authenticated by looking for auth token
+      const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+      if (!token) {
+        clearUser();
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch("/api/profile", { credentials: "include" });
       if (!res.ok) {
         clearUser();

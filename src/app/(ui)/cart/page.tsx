@@ -21,12 +21,20 @@ const Cart = () => {
   // Sort cart items A-Z by name, but keep their original order in state for UI stability
   // Use a memoized sorted array for rendering only
   const sortedCartItems = [...cartItems].sort((a, b) =>
-    a.name.localeCompare(b.name)
+    a.name.localeCompare(b.name),
   );
 
   // Helper to sync cart after API call
   const syncCart = async () => {
     try {
+      // Check if user is authenticated by looking for auth token
+      const token =
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("authToken");
+      if (!token) {
+        return;
+      }
+
       const res = await fetch("/api/cart/list", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -42,7 +50,7 @@ const Cart = () => {
             quantity: item.quantity,
             image_url: item.image_url,
             stocks: item.stocks, // <-- add this line
-          }))
+          })),
         );
       }
     } catch (err) {
