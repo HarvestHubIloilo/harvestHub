@@ -15,6 +15,13 @@ export function useCartCount() {
       setCount(0);
       setLoading(true);
       try {
+        // Check if user is authenticated by looking for auth token
+        const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
         // Fetch cart items and update Zustand store
         const cartRes = await fetch("/api/cart/list");
         if (cartRes.ok) {
