@@ -1,25 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import ProductTable from "@/components/admin/product/ProductTable";
 import ProductForm from "@/components/admin/product/ProductForm";
 import { validateProduct } from "@/utils/admin/product/formValidation";
 import { Product } from "@/lib/definitions";
 import { categories } from "@/lib/productsConfig";
-import Swal from "sweetalert2";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/Pagination";
 import { AdminMainLayout } from "@/layout/AdminMainLayout";
 import useAuthCheck from "@/hooks/admin/useAuthCheck";
-import { useProductStore } from "@/store/admin/productStore";
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const { updateProductToggle } = useProductStore();
 
   // Updated formData: include new fields status and status_message (defaults)
   const [formData, setFormData] = useState<Product>({
